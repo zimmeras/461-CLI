@@ -1,1 +1,0 @@
-/Users/andrewzimmerman/Documents/Purdue/Junior-Spring\ 2023/ECE\ 461/CLI-Project/461-CLI/cli/target/debug/cli: /Users/andrewzimmerman/Documents/Purdue/Junior-Spring\ 2023/ECE\ 461/CLI-Project/461-CLI/cli/src/main.rs
