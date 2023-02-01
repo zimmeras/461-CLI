@@ -9,7 +9,7 @@ fn main() {
         "install" => install(),
         "build" => build(),
         "tes" => test(),
-        url_file_path => rate_repos::parse_url_file(url_file_path),
+        url_file_path => rate_repos::rate_repos(url_file_path),
     };
 }
 

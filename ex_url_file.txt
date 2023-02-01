@@ -1,6 +1,5 @@
-https://github.com/pytorch/pytorch
-https://github.com/numpy/numpy
-https://github.com/matplotlib/matplotlib
-https://www.npmjs.com/package/hello-world-editor
+https://github.com/cloudinary/cloudinary_npm
 https://www.npmjs.com/package/express
-https://www.npmjs.com/package/lodash
+https://github.com/nullivex/nodist
+https://github.com/lodash/lodash
+https://www.npmjs.com/package/browserify
