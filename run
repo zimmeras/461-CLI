@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+if [ $1 = "install" ]
+then
+    cargo build
+elif [ $1 = "build" ]
+then
+    cargo build
+elif [ $1 = "test" ]
+then
+    cargo test
+else
+    cargo run -- $1
+fi
