@@ -8,6 +8,7 @@ pub mod rate_repos {
         pub mod license;
         pub mod ramp_up;
         pub mod responsive_maintainer;
+        use responsive_maintainer::responsive_maintainer_score;
 
         #[derive(Serialize, Deserialize, Debug)]
         #[serde(rename_all = "UPPERCASE")]
@@ -33,7 +34,7 @@ pub mod rate_repos {
                 ramp_up_score: -1,
                 correctness_score: 0.5,
                 bus_factor_score: 0.5,
-                responsive_maintainer_score: 0.5,
+                responsive_maintainer_score: responsive_maintainer_score(_url),
                 license_score: 0.5,
             };
 
@@ -70,8 +71,7 @@ pub mod rate_repos {
                 github_url.pop();
             }
             return Ok(github_url);
-        }
-        else {
+        } else {
             return Ok("".to_string());
         }
     }
@@ -88,7 +88,8 @@ pub mod rate_repos {
 
     pub fn rate_repos(url_file_path: &str) {
         use std::fs;
-        let file_contents = fs::read_to_string(url_file_path).expect("Should have been able to read the file");
+        let file_contents =
+            fs::read_to_string(url_file_path).expect("Should have been able to read the file");
         let urls = file_contents.lines();
 
         let mut url_specs: Vec<UrlSpecs> = Vec::new();
