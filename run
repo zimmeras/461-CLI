@@ -9,6 +9,7 @@ then
 elif [ $1 = "test" ]
 then
     cargo test
+    # this is not going to work
 else
     cargo run -- $1
 fi
