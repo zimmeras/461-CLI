@@ -5,6 +5,7 @@ pub mod rate_repos {
         pub mod license;
         pub mod ramp_up;
         pub mod responsive_maintainer;
+        use responsive_maintainer::responsive_maintainer_score;
 
         #[derive(Debug)]
         pub struct MetricScores {
@@ -30,14 +31,14 @@ pub mod rate_repos {
                 correctness_score: 0.5,
                 license_score: 0.5,
                 ramp_up_score: 0.5,
-                responsive_maintainer_score: 0.5,
+                responsive_maintainer_score: responsive_maintainer_score(_url),
             };
 
-            scores.net_score =  scores.bus_factor_score * BUS_FACTOR_WEIGHT +
-                                scores.correctness_score * CORRECTNESS_WEIGHT +
-                                scores.license_score * LICENSE_WEIGHT +
-                                scores.ramp_up_score * RAMP_UP_WEIGHT +
-                                scores.responsive_maintainer_score * RESPONSIVE_MAINTAINER_WEIGHT;
+            scores.net_score = scores.bus_factor_score * BUS_FACTOR_WEIGHT
+                + scores.correctness_score * CORRECTNESS_WEIGHT
+                + scores.license_score * LICENSE_WEIGHT
+                + scores.ramp_up_score * RAMP_UP_WEIGHT
+                + scores.responsive_maintainer_score * RESPONSIVE_MAINTAINER_WEIGHT;
 
             return scores;
         }
@@ -49,7 +50,7 @@ pub mod rate_repos {
         metric_scores: metrics::MetricScores,
     }
 
-    fn get_github_url_for_npm(npm_url: &str) -> Result<String, ureq::Error>{
+    fn get_github_url_for_npm(npm_url: &str) -> Result<String, ureq::Error> {
         let url = format!("https://registry.npmjs.org/{}", &npm_url[30..]);
         let json: serde_json::Value = ureq::get(&url).call()?.into_json()?;
         let repo_info = &json["repository"];
@@ -64,15 +65,15 @@ pub mod rate_repos {
                 github_url.pop();
             }
             return Ok(github_url);
-        }
-        else {
+        } else {
             return Ok("".to_string());
         }
     }
 
     pub fn rate_repos(url_file_path: &str) {
         use std::fs;
-        let file_contents = fs::read_to_string(url_file_path).expect("Should have been able to read the file");
+        let file_contents =
+            fs::read_to_string(url_file_path).expect("Should have been able to read the file");
         let urls = file_contents.lines();
 
         let mut url_specs: Vec<UrlSpecs> = Vec::new();
@@ -87,8 +88,7 @@ pub mod rate_repos {
                     };
                     url_specs.push(url_spec);
                 }
-            }
-            else if &url[0..19] == "https://github.com/" {
+            } else if &url[0..19] == "https://github.com/" {
                 let url_spec = UrlSpecs {
                     url: url.to_string(),
                     metric_scores: metrics::get_metrics(&url),
@@ -98,8 +98,13 @@ pub mod rate_repos {
         }
 
         // sort the repos in decreasing order
-        url_specs.sort_by(|a, b| b.metric_scores.net_score.partial_cmp(&a.metric_scores.net_score).unwrap());
-        
+        url_specs.sort_by(|a, b| {
+            b.metric_scores
+                .net_score
+                .partial_cmp(&a.metric_scores.net_score)
+                .unwrap()
+        });
+
         print_metrics(&url_specs);
     }
 
