@@ -1,5 +1,5 @@
 pub mod rate_repos {
-    use serde::{Serialize, Deserialize};
+    use serde::{Deserialize, Serialize};
     pub mod metrics {
         use super::*;
 
@@ -8,6 +8,7 @@ pub mod rate_repos {
         pub mod license;
         pub mod ramp_up;
         pub mod responsive_maintainer;
+        use bus_factor::bus_factor_score;
         use responsive_maintainer::responsive_maintainer_score;
 
         #[derive(Serialize, Deserialize, Debug)]
@@ -33,16 +34,16 @@ pub mod rate_repos {
                 net_score: 0.0,
                 ramp_up_score: -1,
                 correctness_score: 0.5,
-                bus_factor_score: 0.5,
+                bus_factor_score: bus_factor_score(_url),
                 responsive_maintainer_score: responsive_maintainer_score(_url),
                 license_score: 0.5,
             };
 
-            scores.net_score =  scores.bus_factor_score * BUS_FACTOR_WEIGHT +
-                                scores.correctness_score * CORRECTNESS_WEIGHT +
-                                scores.license_score * LICENSE_WEIGHT +
-                                scores.responsive_maintainer_score * RESPONSIVE_MAINTAINER_WEIGHT +
-                                (scores.ramp_up_score * RAMP_UP_WEIGHT) as f32;
+            scores.net_score = scores.bus_factor_score * BUS_FACTOR_WEIGHT
+                + scores.correctness_score * CORRECTNESS_WEIGHT
+                + scores.license_score * LICENSE_WEIGHT
+                + scores.responsive_maintainer_score * RESPONSIVE_MAINTAINER_WEIGHT
+                + (scores.ramp_up_score * RAMP_UP_WEIGHT) as f32;
 
             return scores;
         }
@@ -107,8 +108,7 @@ pub mod rate_repos {
                             metric_scores: metrics::get_metrics(&github_url),
                         };
                         url_specs.push(url_spec);
-                    }
-                    else {
+                    } else {
                         let url_spec = UrlSpecs {
                             url: url.to_string(),
                             metric_scores: metrics::MetricScores {
@@ -123,16 +123,14 @@ pub mod rate_repos {
                         url_specs.push(url_spec);
                     }
                 }
-            }
-            else if &url[0..19] == "https://github.com/" {
+            } else if &url[0..19] == "https://github.com/" {
                 if validate_github_url(&url).unwrap() {
                     let url_spec = UrlSpecs {
                         url: url.to_string(),
                         metric_scores: metrics::get_metrics(&url),
                     };
                     url_specs.push(url_spec);
-                }
-                else {
+                } else {
                     let url_spec = UrlSpecs {
                         url: url.to_string(),
                         metric_scores: metrics::MetricScores {
@@ -151,8 +149,13 @@ pub mod rate_repos {
 
         // sort the repos in decreasing order
         simple_log::info!("Sorting repos in decreasing order.");
-        url_specs.sort_by(|a, b| b.metric_scores.net_score.partial_cmp(&a.metric_scores.net_score).unwrap());
-        
+        url_specs.sort_by(|a, b| {
+            b.metric_scores
+                .net_score
+                .partial_cmp(&a.metric_scores.net_score)
+                .unwrap()
+        });
+
         simple_log::info!("Printing final score calculations.");
         print_url_specs(&url_specs);
     }
