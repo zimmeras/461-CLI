@@ -16,7 +16,6 @@ pub mod rate_repos {
             pub ramp_up_score: f32,
             pub responsive_maintainer_score: f32,
         }
-
         const BUS_FACTOR_WEIGHT: f32 = 0.15;
         const CORRECTNESS_WEIGHT: f32 = 0.15;
         const LICENSE_WEIGHT: f32 = 0.15;
@@ -72,12 +71,15 @@ pub mod rate_repos {
 
     pub fn rate_repos(url_file_path: &str) {
         use std::fs;
+        simple_log::info!("Parsing url file.");
         let file_contents =
             fs::read_to_string(url_file_path).expect("Should have been able to read the file");
         let urls = file_contents.lines();
 
         let mut url_specs: Vec<UrlSpecs> = Vec::new();
 
+        simple_log::info!("Obtaining github urls.");
+        simple_log::info!("Calling metric score calculation functions.");
         for url in urls {
             if &url[0..22] == "https://www.npmjs.com/" {
                 let github_url = get_github_url_for_npm(&url).unwrap();
@@ -98,6 +100,7 @@ pub mod rate_repos {
         }
 
         // sort the repos in decreasing order
+        simple_log::info!("Sorting repos in decreasing order.");
         url_specs.sort_by(|a, b| {
             b.metric_scores
                 .net_score
@@ -105,6 +108,7 @@ pub mod rate_repos {
                 .unwrap()
         });
 
+        simple_log::info!("Printing final score calculations.");
         print_metrics(&url_specs);
     }
 

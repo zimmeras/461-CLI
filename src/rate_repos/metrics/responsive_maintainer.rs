@@ -3,15 +3,26 @@
 use octocrab::Octocrab;
 use std::sync::Arc;
 pub fn responsive_maintainer_score(url: &str) -> f32 {
+    simple_log::info!("Calculating Responsive Maintainer Score.)");
+
     let token = std::env::var("GITHUB_TOKEN");
     let octocrab = match token {
-        Ok(t) => Arc::new(Octocrab::builder().personal_token(t).build().unwrap()),
-        Err(_e) => octocrab::instance(),
+        Ok(t) => {
+            simple_log::debug!("RM Score: Used Github token.)");
+            Arc::new(Octocrab::builder().personal_token(t).build().unwrap())
+        }
+        Err(_e) => {
+            simple_log::debug!("RM Score: Did not use Github token.");
+            octocrab::instance()
+        }
     };
-
+    simple_log::trace!("Parcing keywords from url.");
     let keywords = get_keywords(url);
+    simple_log::trace!("Calculating average time issues remain open for.");
     let avg_time_opened = calc_time_opened(&octocrab, keywords);
+    simple_log::trace!("Calculating time since last repository update.");
     let time_since_update = calc_update_time(&octocrab, keywords);
+    simple_log::trace!("Calculating final RM Score.");
     let score = calc_rm_score(avg_time_opened, time_since_update);
     score
 }
@@ -24,7 +35,7 @@ async fn calc_update_time(octocrab: &Octocrab, (owner, repo): (&str, &str)) -> f
         .repos(owner, repo)
         .get_community_profile_metrics()
         .await
-        .expect("Error at call");
+        .unwrap();
 
     let mut time_since_update = 0.0;
     if let Some(updated_at) = value.updated_at {
@@ -75,7 +86,7 @@ async fn calc_time_opened(octocrab: &Octocrab, (owner, repo): (&str, &str)) -> f
             .page(pgnum)
             .send()
             .await
-            .expect("Error at call");
+            .unwrap();
 
         for issue in value {
             if let Some(closed_at) = issue.closed_at {
@@ -102,4 +113,5 @@ async fn calc_time_opened(octocrab: &Octocrab, (owner, repo): (&str, &str)) -> f
     //normalize average_time_opened to return score between 0 and 1
     //Using the function y = e^(-x/20)- chosen b/c 0.5 is at 2 weeks, 0.25 at 4 weeks
     f32::exp(-0.05 * average_time_opened)
+
 }
