@@ -25,19 +25,9 @@ fn main() -> Result<(), String> {
 
     let args: Vec<String> = env::args().collect();
     
-    let input = &args[1];
-    match &input[..] {
-        "install" => install(),
-        "build" => build(),
-        "tes" => test(),
-        url_file_path => rate_repos::rate_repos(url_file_path),
-    };
-    Ok(())
-}
 
-fn install() {
-    simple_log::info!("Installing dependencies");
-}
+let url_file_path = &args[1];
+rate_repos::rate_repos(url_file_path);
 
-fn build() {}
-fn test() {}
+Ok(())
+}
