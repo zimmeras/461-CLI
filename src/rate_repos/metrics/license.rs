@@ -27,5 +27,5 @@ pub fn get_license(_url: &str) -> f32{
 
 fn get_keywords(_url: &str) -> &str {
     let repo = &_url[19..];
-    (repo)
+    repo
 }

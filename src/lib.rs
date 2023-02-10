@@ -8,13 +8,12 @@ pub mod rate_repos {
 
         pub mod bus_factor;
         pub mod correctness;
-        pub mod license;
+        //pub mod license;
         pub mod ramp_up;
         pub mod responsive_maintainer;
         use bus_factor::bus_factor_score;
         use responsive_maintainer::responsive_maintainer_score;
         use correctness::calculate_correctness;
-        use license::get_license;
 
         fn round_to_3(score: f32) -> f32 {
             return (score * 1000.0).floor() / 1000.0
@@ -28,12 +27,12 @@ pub mod rate_repos {
             pub correctness_score: f32,
             pub bus_factor_score: f32,
             pub responsive_maintainer_score: f32,
-            pub license_score: f32,
+            pub license_score: i32,
         }
 
-        const BUS_FACTOR_WEIGHT: f32 = 0.2;
-        const CORRECTNESS_WEIGHT: f32 = 0.2;
-        const LICENSE_WEIGHT: f32 = 0.2;
+        const BUS_FACTOR_WEIGHT: f32 = 0.3;
+        const CORRECTNESS_WEIGHT: f32 = 0.3;
+        const LICENSE_WEIGHT: i32 = 0;
         const RAMP_UP_WEIGHT: i32 = 0;
         const RESPONSIVE_MAINTAINER_WEIGHT: f32 = 0.4;
 
@@ -45,12 +44,12 @@ pub mod rate_repos {
                 bus_factor_score: bus_factor_score(_url),
                 correctness_score: calculate_correctness(_url) as f32,
                 responsive_maintainer_score: responsive_maintainer_score(_url),
-                license_score: get_license(_url),
+                license_score: -1,
             };
 
             scores.net_score = scores.bus_factor_score * BUS_FACTOR_WEIGHT
                 + scores.correctness_score * CORRECTNESS_WEIGHT
-                + scores.license_score * LICENSE_WEIGHT
+                + (scores.license_score * LICENSE_WEIGHT) as f32
                 + scores.responsive_maintainer_score * RESPONSIVE_MAINTAINER_WEIGHT
                 + (scores.ramp_up_score * RAMP_UP_WEIGHT) as f32;
 
@@ -59,7 +58,6 @@ pub mod rate_repos {
             scores.correctness_score = round_to_3(scores.correctness_score);
             scores.bus_factor_score = round_to_3(scores.bus_factor_score);
             scores.responsive_maintainer_score = round_to_3(scores.responsive_maintainer_score);
-            scores.license_score = round_to_3(scores.license_score);
 
             return scores;
         }
@@ -96,18 +94,18 @@ pub mod rate_repos {
         }
     }
 
-    fn validate_github_url(url: &str) -> Result<bool, ureq::Error> {
-        let repo_full_name = &url[19..];
-        let token = std::env::var("GITHUB_TOKEN").unwrap();
-        let http_url = format!("https://api.github.com/repos/{}", &repo_full_name);
-        let response = ureq::get(&http_url)
-                        .set("Authorization", &token[..])
-                        .call();
-        match response {
-            Ok(_r) => return Ok(true),
-            Err(_e) => return Ok(false),
-        };
-    }
+    // fn validate_github_url(url: &str) -> Result<bool, ureq::Error> {
+    //     let repo_full_name = &url[19..];
+    //     let token = std::env::var("GITHUB_TOKEN").unwrap();
+    //     let http_url = format!("https://api.github.com/repos/{}", &repo_full_name);
+    //     let response = ureq::get(&http_url)
+    //                     .set("Authorization", &token[..])
+    //                     .call();
+    //     match response {
+    //         Ok(_r) => return Ok(true),
+    //         Err(_e) => return Ok(false),
+    //     };
+    // }
 
     pub fn rate_repos(url_file_path: &str, stdout: &mut dyn io::Write) {
         use std::fs;
@@ -178,7 +176,7 @@ pub mod rate_repos {
                         correctness_score: 0.0,
                         bus_factor_score: 0.0,
                         responsive_maintainer_score: 0.0,
-                        license_score: 0.0,
+                        license_score: -1,
                     },
                 };
                 url_specs.push(url_spec);
@@ -211,10 +209,10 @@ mod tests {
 
     #[test]
     fn test_urls_1() {
-        let json_output = br#"{"URL":"https://www.npmjs.com/package/axios","NET_SCORE":0.667,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.999,"BUS_FACTOR_SCORE":0.5,"RESPONSIVE_MAINTAINER_SCORE":0.669,"LICENSE_SCORE":0.5}
-{"URL":"https://www.npmjs.com/package/karma","NET_SCORE":0.581,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.741,"BUS_FACTOR_SCORE":0.5,"RESPONSIVE_MAINTAINER_SCORE":0.583,"LICENSE_SCORE":0.5}
-{"URL":"https://www.npmjs.com/package/lodash","NET_SCORE":0.456,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.998,"BUS_FACTOR_SCORE":0.5,"RESPONSIVE_MAINTAINER_SCORE":0.141,"LICENSE_SCORE":0.5}
-{"URL":"https://www.npmjs.com/package/cloudinary","NET_SCORE":0.38,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.063,"BUS_FACTOR_SCORE":0.5,"RESPONSIVE_MAINTAINER_SCORE":0.419,"LICENSE_SCORE":0.5}
+        let json_output = br#"{"URL":"https://www.npmjs.com/package/axios","NET_SCORE":0.782,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.999,"BUS_FACTOR_SCORE":0.392,"RESPONSIVE_MAINTAINER_SCORE":0.669,"LICENSE_SCORE":-1}
+{"URL":"https://www.npmjs.com/package/karma","NET_SCORE":0.66,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.741,"BUS_FACTOR_SCORE":0.392,"RESPONSIVE_MAINTAINER_SCORE":0.583,"LICENSE_SCORE":-1}
+{"URL":"https://www.npmjs.com/package/lodash","NET_SCORE":0.624,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.998,"BUS_FACTOR_SCORE":0.5,"RESPONSIVE_MAINTAINER_SCORE":0.141,"LICENSE_SCORE":-1}
+{"URL":"https://www.npmjs.com/package/cloudinary","NET_SCORE":0.54,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.063,"BUS_FACTOR_SCORE":0.244,"RESPONSIVE_MAINTAINER_SCORE":0.419,"LICENSE_SCORE":-1}
 "#;
         let mut stdout = Vec::new();
         rate_repos::rate_repos("test_urls_1.txt", &mut stdout);
@@ -223,11 +221,11 @@ mod tests {
 
     #[test]
     fn test_urls_2() {
-        let json_output = br#"{"URL":"https://www.npmjs.com/package/express","NET_SCORE":0.732,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.998,"BUS_FACTOR_SCORE":0.5,"RESPONSIVE_MAINTAINER_SCORE":0.831,"LICENSE_SCORE":0.5}
-{"URL":"https://www.npmjs.com/package/mocha","NET_SCORE":0.613,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.918,"BUS_FACTOR_SCORE":0.5,"RESPONSIVE_MAINTAINER_SCORE":0.575,"LICENSE_SCORE":0.5}
-{"URL":"https://www.npmjs.com/package/pm2","NET_SCORE":0.611,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.987,"BUS_FACTOR_SCORE":0.5,"RESPONSIVE_MAINTAINER_SCORE":0.534,"LICENSE_SCORE":0.5}
-{"URL":"https://www.npmjs.com/package/async","NET_SCORE":0.568,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.958,"BUS_FACTOR_SCORE":0.5,"RESPONSIVE_MAINTAINER_SCORE":0.441,"LICENSE_SCORE":0.5}
-{"URL":"https://www.npmjs.com/package/grunt","NET_SCORE":0.514,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.751,"BUS_FACTOR_SCORE":0.5,"RESPONSIVE_MAINTAINER_SCORE":0.411,"LICENSE_SCORE":0.5}
+        let json_output = br#"{"URL":"https://www.npmjs.com/package/express","NET_SCORE":0.732,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.998,"BUS_FACTOR_SCORE":0.5,"RESPONSIVE_MAINTAINER_SCORE":0.831,"LICENSE_SCORE":-1}
+{"URL":"https://www.npmjs.com/package/mocha","NET_SCORE":0.613,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.918,"BUS_FACTOR_SCORE":0.5,"RESPONSIVE_MAINTAINER_SCORE":0.575,"LICENSE_SCORE":-1}
+{"URL":"https://www.npmjs.com/package/pm2","NET_SCORE":0.611,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.987,"BUS_FACTOR_SCORE":0.392,"RESPONSIVE_MAINTAINER_SCORE":0.534,"LICENSE_SCORE":-1}
+{"URL":"https://www.npmjs.com/package/async","NET_SCORE":0.568,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.958,"BUS_FACTOR_SCORE":0.392,"RESPONSIVE_MAINTAINER_SCORE":0.441,"LICENSE_SCORE":-1}
+{"URL":"https://www.npmjs.com/package/grunt","NET_SCORE":0.514,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.751,"BUS_FACTOR_SCORE":0.5,"RESPONSIVE_MAINTAINER_SCORE":0.411,"LICENSE_SCORE":-1}
 "#;
         let mut stdout = Vec::new();
         rate_repos::rate_repos("test_urls_2.txt", &mut stdout);
@@ -246,7 +244,7 @@ mod tests {
                     correctness_score: 0.5,
                     bus_factor_score: 0.5,
                     responsive_maintainer_score: 0.5,
-                    license_score: 0.5,
+                    license_score: -1,
                 },
             }
         );
@@ -260,7 +258,7 @@ mod tests {
                     correctness_score: 0.5,
                     bus_factor_score: 0.5,
                     responsive_maintainer_score: 0.5,
-                    license_score: 0.5,
+                    license_score: -1,
                 },
             }
         );
