@@ -9,3 +9,4 @@ edition = "2021"
 serde_json = "1.0.91"
 ureq = { version = "2.6.2", features = ["json"] }
 git2 = "0.16.1"
+cpython = "0.7.1"

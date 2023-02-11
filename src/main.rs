@@ -1,6 +1,5 @@
 use std::env;
 use purdue461_cli::rate_repos;
-use purdue461_cli::rate_repos::metrics::correctness;
 
 
 fn main() {
@@ -13,8 +12,6 @@ fn main() {
         "tes" => test(),
         url_file_path => rate_repos::rate_repos(url_file_path),
     };
-    //correctness::clone_repo("https://github.com/cloudinary/cloudinary_npm");
-    correctness::delete_repo();
 }
 
 fn install() {

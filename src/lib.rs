@@ -5,6 +5,7 @@ pub mod rate_repos {
         pub mod license;
         pub mod ramp_up;
         pub mod responsive_maintainer;
+        use correctness::calculate_correctness;
 
         #[derive(Debug)]
         pub struct MetricScores {
@@ -27,7 +28,7 @@ pub mod rate_repos {
             let mut scores = MetricScores {
                 net_score: 0.0,
                 bus_factor_score: 0.5,
-                correctness_score: 0.5,
+                correctness_score: calculate_correctness(_url) as f32,
                 license_score: 0.5,
                 ramp_up_score: 0.5,
                 responsive_maintainer_score: 0.5,
