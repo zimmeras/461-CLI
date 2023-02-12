@@ -11,6 +11,7 @@ pub mod rate_repos {
         pub mod ramp_up;
         pub mod responsive_maintainer;
         use responsive_maintainer::responsive_maintainer_score;
+        use correctness::calculate_correctness;
 
         fn round_to_3(score: f32) -> f32 {
             return (score * 1000.0).floor() / 1000.0
@@ -38,7 +39,7 @@ pub mod rate_repos {
             let mut scores = MetricScores {
                 net_score: 0.0,
                 ramp_up_score: -1,
-                correctness_score: 0.5,
+                correctness_score: calculate_correctness(_url) as f32,
                 bus_factor_score: 0.5,
                 responsive_maintainer_score: responsive_maintainer_score(_url),
                 license_score: 0.5,
@@ -207,10 +208,10 @@ mod tests {
 
     #[test]
     fn test_urls_1() {
-        let json_output = br#"{"URL":"https://www.npmjs.com/package/axios","NET_SCORE":0.567,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.5,"BUS_FACTOR_SCORE":0.5,"RESPONSIVE_MAINTAINER_SCORE":0.669,"LICENSE_SCORE":0.5}
-{"URL":"https://www.npmjs.com/package/karma","NET_SCORE":0.533,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.5,"BUS_FACTOR_SCORE":0.5,"RESPONSIVE_MAINTAINER_SCORE":0.583,"LICENSE_SCORE":0.5}
-{"URL":"https://www.npmjs.com/package/cloudinary","NET_SCORE":0.467,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.5,"BUS_FACTOR_SCORE":0.5,"RESPONSIVE_MAINTAINER_SCORE":0.419,"LICENSE_SCORE":0.5}
-{"URL":"https://www.npmjs.com/package/lodash","NET_SCORE":0.356,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.5,"BUS_FACTOR_SCORE":0.5,"RESPONSIVE_MAINTAINER_SCORE":0.141,"LICENSE_SCORE":0.5}
+        let json_output = br#"{"URL":"https://www.npmjs.com/package/axios","NET_SCORE":0.667,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.999,"BUS_FACTOR_SCORE":0.5,"RESPONSIVE_MAINTAINER_SCORE":0.669,"LICENSE_SCORE":0.5}
+{"URL":"https://www.npmjs.com/package/karma","NET_SCORE":0.581,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.741,"BUS_FACTOR_SCORE":0.5,"RESPONSIVE_MAINTAINER_SCORE":0.583,"LICENSE_SCORE":0.5}
+{"URL":"https://www.npmjs.com/package/lodash","NET_SCORE":0.456,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.998,"BUS_FACTOR_SCORE":0.5,"RESPONSIVE_MAINTAINER_SCORE":0.141,"LICENSE_SCORE":0.5}
+{"URL":"https://www.npmjs.com/package/cloudinary","NET_SCORE":0.38,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.063,"BUS_FACTOR_SCORE":0.5,"RESPONSIVE_MAINTAINER_SCORE":0.419,"LICENSE_SCORE":0.5}
 "#;
         let mut stdout = Vec::new();
         rate_repos::rate_repos("test_urls_1.txt", &mut stdout);
@@ -219,11 +220,11 @@ mod tests {
 
     #[test]
     fn test_urls_2() {
-        let json_output = br#"{"URL":"https://www.npmjs.com/package/express","NET_SCORE":0.632,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.5,"BUS_FACTOR_SCORE":0.5,"RESPONSIVE_MAINTAINER_SCORE":0.831,"LICENSE_SCORE":0.5}
-{"URL":"https://www.npmjs.com/package/mocha","NET_SCORE":0.53,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.5,"BUS_FACTOR_SCORE":0.5,"RESPONSIVE_MAINTAINER_SCORE":0.575,"LICENSE_SCORE":0.5}
-{"URL":"https://www.npmjs.com/package/pm2","NET_SCORE":0.513,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.5,"BUS_FACTOR_SCORE":0.5,"RESPONSIVE_MAINTAINER_SCORE":0.534,"LICENSE_SCORE":0.5}
-{"URL":"https://www.npmjs.com/package/async","NET_SCORE":0.476,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.5,"BUS_FACTOR_SCORE":0.5,"RESPONSIVE_MAINTAINER_SCORE":0.441,"LICENSE_SCORE":0.5}
-{"URL":"https://www.npmjs.com/package/grunt","NET_SCORE":0.464,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.5,"BUS_FACTOR_SCORE":0.5,"RESPONSIVE_MAINTAINER_SCORE":0.411,"LICENSE_SCORE":0.5}
+        let json_output = br#"{"URL":"https://www.npmjs.com/package/express","NET_SCORE":0.732,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.998,"BUS_FACTOR_SCORE":0.5,"RESPONSIVE_MAINTAINER_SCORE":0.831,"LICENSE_SCORE":0.5}
+{"URL":"https://www.npmjs.com/package/mocha","NET_SCORE":0.613,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.918,"BUS_FACTOR_SCORE":0.5,"RESPONSIVE_MAINTAINER_SCORE":0.575,"LICENSE_SCORE":0.5}
+{"URL":"https://www.npmjs.com/package/pm2","NET_SCORE":0.611,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.987,"BUS_FACTOR_SCORE":0.5,"RESPONSIVE_MAINTAINER_SCORE":0.534,"LICENSE_SCORE":0.5}
+{"URL":"https://www.npmjs.com/package/async","NET_SCORE":0.568,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.958,"BUS_FACTOR_SCORE":0.5,"RESPONSIVE_MAINTAINER_SCORE":0.441,"LICENSE_SCORE":0.5}
+{"URL":"https://www.npmjs.com/package/grunt","NET_SCORE":0.514,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.751,"BUS_FACTOR_SCORE":0.5,"RESPONSIVE_MAINTAINER_SCORE":0.411,"LICENSE_SCORE":0.5}
 "#;
         let mut stdout = Vec::new();
         rate_repos::rate_repos("test_urls_2.txt", &mut stdout);
