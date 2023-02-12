@@ -13,4 +13,4 @@ octocrab = "0.16"
 tokio = {version = "1.25", features = ["rt", "rt-multi-thread", "macros"]}
 simple-log = "1.5.1"
 regex = "1"
-mockall = "0.11.3"
+git2 = "0.16.1"
