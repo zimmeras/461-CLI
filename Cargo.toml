@@ -9,4 +9,6 @@ edition = "2021"
 serde_json = "1.0.91"
 ureq = { version = "2.6.2", features = ["json"] }
 git2 = "0.16.1"
-cpython = "0.7.1"
+octocrab = "0.18.1"
+tokio = {version = "1.25.0", features = ["rt", "rt-multi-thread", "macros"]}
+walkdir = "2.3.2"
