@@ -75,8 +75,6 @@ pub mod rate_repos {
         let json: serde_json::Value = ureq::get(&url).call()?.into_json()?;
         let repo_info = &json["repository"];
 
-        // println!("{}", json.as_str().unwrap());
-
         if repo_info["type"] == "git" {
             let mut github_url = repo_info["url"].as_str().unwrap()[4..].to_string();
             if &github_url[..10] == "ssh://git@" {
@@ -89,7 +87,6 @@ pub mod rate_repos {
             for _i in 1..5 {
                 github_url.pop();
             }
-            // println!("{}", github_url);
             return Ok(github_url);
         } else {
             return Ok("".to_string());
@@ -100,13 +97,12 @@ pub mod rate_repos {
         let repo_full_name = &url[19..];
         let token = std::env::var("GITHUB_TOKEN").unwrap();
         let http_url = format!("https://api.github.com/repos/{}", &repo_full_name);
-        // println!("{}", http_url);
         let response = ureq::get(&http_url)
                         .set("Authorization", &token[..])
                         .call();
         match response {
             Ok(_r) => return Ok(true),
-            Err(_e) => {println!("{}", _e); return Ok(false)},
+            Err(_e) => return Ok(false),
         };
     }
 
@@ -123,53 +119,52 @@ pub mod rate_repos {
         for url in urls {
             if &url[0..22] == "https://www.npmjs.com/" {
                 let github_url = get_github_url_for_npm(&url).unwrap();
-                // println!("{}", github_url);
                 if &github_url[0..19] == "https://github.com/" {
-                    if validate_github_url(&github_url).unwrap() {
+                    // if validate_github_url(&github_url).unwrap() {
                         let url_spec = UrlSpecs {
                             url: url.to_string(),
                             metric_scores: metrics::get_metrics(&github_url),
                         };
                         url_specs.push(url_spec);
-                    }
-                    else {
-                        let url_spec = UrlSpecs {
-                            url: url.to_string(),
-                            metric_scores: metrics::MetricScores {
-                                net_score: 0.0,
-                                ramp_up_score: -1,
-                                correctness_score: 0.0,
-                                bus_factor_score: 0.0,
-                                responsive_maintainer_score: 0.0,
-                                license_score: 0.0,
-                            },
-                        };
-                        url_specs.push(url_spec);
-                    }
+                    // }
+                    // else {
+                    //     let url_spec = UrlSpecs {
+                    //         url: url.to_string(),
+                    //         metric_scores: metrics::MetricScores {
+                    //             net_score: 0.0,
+                    //             ramp_up_score: -1,
+                    //             correctness_score: 0.0,
+                    //             bus_factor_score: 0.0,
+                    //             responsive_maintainer_score: 0.0,
+                    //             license_score: 0.0,
+                    //         },
+                    //     };
+                    //     url_specs.push(url_spec);
+                    // }
                 }
             }
             else if &url[0..19] == "https://github.com/" {
-                if validate_github_url(&url).unwrap() {
+                // /if validate_github_url(&url).unwrap() {
                     let url_spec = UrlSpecs {
                         url: url.to_string(),
                         metric_scores: metrics::get_metrics(&url),
                     };
                     url_specs.push(url_spec);
-                }
-                else {
-                    let url_spec = UrlSpecs {
-                        url: url.to_string(),
-                        metric_scores: metrics::MetricScores {
-                            net_score: 0.0,
-                            ramp_up_score: -1,
-                            correctness_score: 0.0,
-                            bus_factor_score: 0.0,
-                            responsive_maintainer_score: 0.0,
-                            license_score: 0.0,
-                        },
-                    };
-                    url_specs.push(url_spec);
-                }
+                // }
+                // else {
+                //     let url_spec = UrlSpecs {
+                //         url: url.to_string(),
+                //         metric_scores: metrics::MetricScores {
+                //             net_score: 0.0,
+                //             ramp_up_score: -1,
+                //             correctness_score: 0.0,
+                //             bus_factor_score: 0.0,
+                //             responsive_maintainer_score: 0.0,
+                //             license_score: 0.0,
+                //         },
+                //     };
+                //     url_specs.push(url_spec);
+                // }
             }
             else {
                 let url_spec = UrlSpecs {
