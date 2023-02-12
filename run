@@ -8,8 +8,9 @@ then
     cargo build
 elif [ $1 = "test" ]
 then
-    cargo test
-    # this is not going to work
+    cargo test -q --lib > testing_logs.txt
+    cargo run -q -- test
+    # echo $? --no-fail-fast
 else
-    cargo run -- $1
+    cargo run -q -- $1
 fi

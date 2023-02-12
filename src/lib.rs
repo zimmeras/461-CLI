@@ -1,5 +1,7 @@
 pub mod rate_repos {
     use serde::{Serialize, Deserialize};
+    use std::io;
+
     pub mod metrics {
         use super::*;
 
@@ -9,6 +11,10 @@ pub mod rate_repos {
         pub mod ramp_up;
         pub mod responsive_maintainer;
         use responsive_maintainer::responsive_maintainer_score;
+
+        fn round_to_3(score: f32) -> f32 {
+            return (score * 1000.0).floor() / 1000.0
+        }
 
         #[derive(Serialize, Deserialize, Debug)]
         #[serde(rename_all = "UPPERCASE")]
@@ -44,6 +50,13 @@ pub mod rate_repos {
                                 scores.responsive_maintainer_score * RESPONSIVE_MAINTAINER_WEIGHT +
                                 (scores.ramp_up_score * RAMP_UP_WEIGHT) as f32;
 
+            // round each score
+            scores.net_score = round_to_3(scores.net_score);
+            scores.correctness_score = round_to_3(scores.correctness_score);
+            scores.bus_factor_score = round_to_3(scores.bus_factor_score);
+            scores.responsive_maintainer_score = round_to_3(scores.responsive_maintainer_score);
+            scores.license_score = round_to_3(scores.license_score);
+
             return scores;
         }
     }
@@ -51,9 +64,9 @@ pub mod rate_repos {
     #[derive(Serialize, Deserialize, Debug)]
     #[serde(rename_all = "UPPERCASE")]
     pub struct UrlSpecs {
-        url: String,
+        pub url: String,
         #[serde(flatten)]
-        metric_scores: metrics::MetricScores,
+        pub metric_scores: metrics::MetricScores,
     }
 
     fn get_github_url_for_npm(npm_url: &str) -> Result<String, ureq::Error> {
@@ -61,15 +74,21 @@ pub mod rate_repos {
         let json: serde_json::Value = ureq::get(&url).call()?.into_json()?;
         let repo_info = &json["repository"];
 
+        // println!("{}", json.as_str().unwrap());
+
         if repo_info["type"] == "git" {
             let mut github_url = repo_info["url"].as_str().unwrap()[4..].to_string();
             if &github_url[..10] == "ssh://git@" {
                 github_url = github_url[10..].to_string();
                 github_url = format!("https://{github_url}");
             }
+            else if &github_url[..2] == "//" {
+                github_url = format!("https:{github_url}");
+            }
             for _i in 1..5 {
                 github_url.pop();
             }
+            // println!("{}", github_url);
             return Ok(github_url);
         } else {
             return Ok("".to_string());
@@ -78,19 +97,22 @@ pub mod rate_repos {
 
     fn validate_github_url(url: &str) -> Result<bool, ureq::Error> {
         let repo_full_name = &url[19..];
+        let token = std::env::var("GITHUB_TOKEN").unwrap();
         let http_url = format!("https://api.github.com/repos/{}", &repo_full_name);
-        let response = ureq::get(&http_url).call();
+        // println!("{}", http_url);
+        let response = ureq::get(&http_url)
+                        .set("Authorization", &token[..])
+                        .call();
         match response {
             Ok(_r) => return Ok(true),
-            Err(_e) => return Ok(false),
+            Err(_e) => {println!("{}", _e); return Ok(false)},
         };
     }
 
-    pub fn rate_repos(url_file_path: &str) {
+    pub fn rate_repos(url_file_path: &str, stdout: &mut dyn io::Write) {
         use std::fs;
         simple_log::info!("Parsing url file.");
-        let file_contents =
-            fs::read_to_string(url_file_path).expect("Should have been able to read the file");
+        let file_contents = fs::read_to_string(url_file_path).expect("Unable to read file");
         let urls = file_contents.lines();
 
         let mut url_specs: Vec<UrlSpecs> = Vec::new();
@@ -100,6 +122,7 @@ pub mod rate_repos {
         for url in urls {
             if &url[0..22] == "https://www.npmjs.com/" {
                 let github_url = get_github_url_for_npm(&url).unwrap();
+                // println!("{}", github_url);
                 if &github_url[0..19] == "https://github.com/" {
                     if validate_github_url(&github_url).unwrap() {
                         let url_spec = UrlSpecs {
@@ -147,6 +170,20 @@ pub mod rate_repos {
                     url_specs.push(url_spec);
                 }
             }
+            else {
+                let url_spec = UrlSpecs {
+                    url: url.to_string(),
+                    metric_scores: metrics::MetricScores {
+                        net_score: 0.0,
+                        ramp_up_score: -1,
+                        correctness_score: 0.0,
+                        bus_factor_score: 0.0,
+                        responsive_maintainer_score: 0.0,
+                        license_score: 0.0,
+                    },
+                };
+                url_specs.push(url_spec);
+            }
         }
 
         // sort the repos in decreasing order
@@ -154,12 +191,83 @@ pub mod rate_repos {
         url_specs.sort_by(|a, b| b.metric_scores.net_score.partial_cmp(&a.metric_scores.net_score).unwrap());
         
         simple_log::info!("Printing final score calculations.");
-        print_url_specs(&url_specs);
+        print_url_specs(&url_specs, stdout);
     }
 
-    pub fn print_url_specs(url_specs: &Vec<UrlSpecs>) {
+    pub fn print_url_specs(url_specs: &Vec<UrlSpecs>, stdout: &mut dyn io::Write) {
         for repo_info in url_specs {
-            println!("{}", serde_json::to_string(&repo_info).unwrap());
+            writeln!(stdout, "{}", serde_json::to_string(&repo_info).unwrap()).unwrap();
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_urls_1() {
+        let json_output = br#"{"URL":"https://www.npmjs.com/package/axios","NET_SCORE":0.567,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.5,"BUS_FACTOR_SCORE":0.5,"RESPONSIVE_MAINTAINER_SCORE":0.669,"LICENSE_SCORE":0.5}
+{"URL":"https://www.npmjs.com/package/karma","NET_SCORE":0.533,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.5,"BUS_FACTOR_SCORE":0.5,"RESPONSIVE_MAINTAINER_SCORE":0.583,"LICENSE_SCORE":0.5}
+{"URL":"https://www.npmjs.com/package/cloudinary","NET_SCORE":0.467,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.5,"BUS_FACTOR_SCORE":0.5,"RESPONSIVE_MAINTAINER_SCORE":0.419,"LICENSE_SCORE":0.5}
+{"URL":"https://www.npmjs.com/package/lodash","NET_SCORE":0.356,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.5,"BUS_FACTOR_SCORE":0.5,"RESPONSIVE_MAINTAINER_SCORE":0.141,"LICENSE_SCORE":0.5}
+"#;
+        let mut stdout = Vec::new();
+        rate_repos::rate_repos("test_urls_1.txt", &mut stdout);
+        assert_eq!(stdout, json_output);
+    }
+
+    #[test]
+    fn test_urls_2() {
+        let json_output = br#"{"URL":"https://www.npmjs.com/package/express","NET_SCORE":0.632,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.5,"BUS_FACTOR_SCORE":0.5,"RESPONSIVE_MAINTAINER_SCORE":0.831,"LICENSE_SCORE":0.5}
+{"URL":"https://www.npmjs.com/package/mocha","NET_SCORE":0.53,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.5,"BUS_FACTOR_SCORE":0.5,"RESPONSIVE_MAINTAINER_SCORE":0.575,"LICENSE_SCORE":0.5}
+{"URL":"https://www.npmjs.com/package/pm2","NET_SCORE":0.513,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.5,"BUS_FACTOR_SCORE":0.5,"RESPONSIVE_MAINTAINER_SCORE":0.534,"LICENSE_SCORE":0.5}
+{"URL":"https://www.npmjs.com/package/async","NET_SCORE":0.476,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.5,"BUS_FACTOR_SCORE":0.5,"RESPONSIVE_MAINTAINER_SCORE":0.441,"LICENSE_SCORE":0.5}
+{"URL":"https://www.npmjs.com/package/grunt","NET_SCORE":0.464,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.5,"BUS_FACTOR_SCORE":0.5,"RESPONSIVE_MAINTAINER_SCORE":0.411,"LICENSE_SCORE":0.5}
+"#;
+        let mut stdout = Vec::new();
+        rate_repos::rate_repos("test_urls_2.txt", &mut stdout);
+        assert_eq!(stdout, json_output);
+    }
+
+    #[test]
+    fn test_print_url_specs() {
+        let mut mock_url_specs: Vec<rate_repos::UrlSpecs> = Vec::new();
+        mock_url_specs.push(
+            rate_repos::UrlSpecs {
+                url: "fake_url_1".to_string(),
+                metric_scores: rate_repos::metrics::MetricScores {
+                    net_score: 0.5,
+                    ramp_up_score: -1,
+                    correctness_score: 0.5,
+                    bus_factor_score: 0.5,
+                    responsive_maintainer_score: 0.5,
+                    license_score: 0.5,
+                },
+            }
+        );
+
+        mock_url_specs.push(
+            rate_repos::UrlSpecs {
+                url: "fake_url_2".to_string(),
+                metric_scores: rate_repos::metrics::MetricScores {
+                    net_score: 0.7,
+                    ramp_up_score: -1,
+                    correctness_score: 0.5,
+                    bus_factor_score: 0.5,
+                    responsive_maintainer_score: 0.5,
+                    license_score: 0.5,
+                },
+            }
+        );
+
+        // json_output must look like this with the bad indenting for assert to work correctly
+        let json_output = br#"{"URL":"fake_url_1","NET_SCORE":0.5,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.5,"BUS_FACTOR_SCORE":0.5,"RESPONSIVE_MAINTAINER_SCORE":0.5,"LICENSE_SCORE":0.5}
+{"URL":"fake_url_2","NET_SCORE":0.7,"RAMP_UP_SCORE":-1,"CORRECTNESS_SCORE":0.5,"BUS_FACTOR_SCORE":0.5,"RESPONSIVE_MAINTAINER_SCORE":0.5,"LICENSE_SCORE":0.5}
+"#;
+
+        let mut stdout = Vec::new();
+        rate_repos::print_url_specs(&mock_url_specs, &mut stdout);
+        assert_eq!(stdout, json_output);
     }
 }
