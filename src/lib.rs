@@ -1,4 +1,5 @@
 pub mod rate_repos {
+
     use serde::{Serialize, Deserialize};
     use std::io;
 
@@ -10,6 +11,7 @@ pub mod rate_repos {
         pub mod license;
         pub mod ramp_up;
         pub mod responsive_maintainer;
+        use bus_factor::bus_factor_score;
         use responsive_maintainer::responsive_maintainer_score;
         use correctness::calculate_correctness;
 
@@ -39,17 +41,17 @@ pub mod rate_repos {
             let mut scores = MetricScores {
                 net_score: 0.0,
                 ramp_up_score: -1,
+                bus_factor_score: bus_factor_score(_url),
                 correctness_score: calculate_correctness(_url) as f32,
-                bus_factor_score: 0.5,
                 responsive_maintainer_score: responsive_maintainer_score(_url),
                 license_score: 0.5,
             };
 
-            scores.net_score =  scores.bus_factor_score * BUS_FACTOR_WEIGHT +
-                                scores.correctness_score * CORRECTNESS_WEIGHT +
-                                scores.license_score * LICENSE_WEIGHT +
-                                scores.responsive_maintainer_score * RESPONSIVE_MAINTAINER_WEIGHT +
-                                (scores.ramp_up_score * RAMP_UP_WEIGHT) as f32;
+            scores.net_score = scores.bus_factor_score * BUS_FACTOR_WEIGHT
+                + scores.correctness_score * CORRECTNESS_WEIGHT
+                + scores.license_score * LICENSE_WEIGHT
+                + scores.responsive_maintainer_score * RESPONSIVE_MAINTAINER_WEIGHT
+                + (scores.ramp_up_score * RAMP_UP_WEIGHT) as f32;
 
             // round each score
             scores.net_score = round_to_3(scores.net_score);
@@ -184,8 +186,13 @@ pub mod rate_repos {
 
         // sort the repos in decreasing order
         simple_log::info!("Sorting repos in decreasing order.");
-        url_specs.sort_by(|a, b| b.metric_scores.net_score.partial_cmp(&a.metric_scores.net_score).unwrap());
-        
+        url_specs.sort_by(|a, b| {
+            b.metric_scores
+                .net_score
+                .partial_cmp(&a.metric_scores.net_score)
+                .unwrap()
+        });
+
         simple_log::info!("Printing final score calculations.");
         print_url_specs(&url_specs, stdout);
     }
