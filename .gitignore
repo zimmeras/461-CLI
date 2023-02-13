@@ -2,3 +2,4 @@
 target
 .env
 *.log
+testing_logs.txt
