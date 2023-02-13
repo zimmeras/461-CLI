@@ -12,6 +12,7 @@ pub mod rate_repos {
         pub mod responsive_maintainer;
         use responsive_maintainer::responsive_maintainer_score;
         use correctness::calculate_correctness;
+        use license::get_license;
 
         fn round_to_3(score: f32) -> f32 {
             return (score * 1000.0).floor() / 1000.0
@@ -42,7 +43,7 @@ pub mod rate_repos {
                 correctness_score: calculate_correctness(_url) as f32,
                 bus_factor_score: 0.5,
                 responsive_maintainer_score: responsive_maintainer_score(_url),
-                license_score: 0.5,
+                license_score: get_license(_url),
             };
 
             scores.net_score =  scores.bus_factor_score * BUS_FACTOR_WEIGHT +
