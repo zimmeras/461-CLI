@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-
+export $(cat .env | xargs)
 if [ $1 = "install" ]
 then
     cargo build
