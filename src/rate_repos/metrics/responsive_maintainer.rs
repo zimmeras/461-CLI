@@ -75,7 +75,6 @@ async fn calc_time_opened(octocrab: &Octocrab, (owner, repo): (&str, &str)) -> f
     let mut count = 0.0;
     let mut total_time_opened = 0.0;
     let mut pgnum = 0 as u32;
-    'outer: loop {
         use octocrab::params;
         pgnum += pgnum;
         let value = octocrab
@@ -101,13 +100,15 @@ async fn calc_time_opened(octocrab: &Octocrab, (owner, repo): (&str, &str)) -> f
                     let time_opened = time_opened as f32 / sec_to_days;
                     total_time_opened += time_opened;
                     count += 1.0;
-                    if count >= 50.0 {
-                        break 'outer;
-                    }
+               
                 }
             }
-        }
+        
     }
+    if count == 0.0 {
+        return 1.0;
+    }
+    
     let average_time_opened = total_time_opened / count;
 
     //normalize average_time_opened to return score between 0 and 1
